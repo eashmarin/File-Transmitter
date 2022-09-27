@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/File-Transmitter.iml" filepath="$PROJECT_DIR$/File-Transmitter.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Client/File-Transmitter.Client.iml" filepath="$PROJECT_DIR$/.idea/modules/Client/File-Transmitter.Client.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Client/File-Transmitter.Client.main.iml" filepath="$PROJECT_DIR$/.idea/modules/Client/File-Transmitter.Client.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Client/File-Transmitter.Client.test.iml" filepath="$PROJECT_DIR$/.idea/modules/Client/File-Transmitter.Client.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Common/File-Transmitter.Common.iml" filepath="$PROJECT_DIR$/.idea/modules/Common/File-Transmitter.Common.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Common/File-Transmitter.Common.main.iml" filepath="$PROJECT_DIR$/.idea/modules/Common/File-Transmitter.Common.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Common/File-Transmitter.Common.test.iml" filepath="$PROJECT_DIR$/.idea/modules/Common/File-Transmitter.Common.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Server/File-Transmitter.Server.iml" filepath="$PROJECT_DIR$/.idea/modules/Server/File-Transmitter.Server.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Server/File-Transmitter.Server.main.iml" filepath="$PROJECT_DIR$/.idea/modules/Server/File-Transmitter.Server.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Server/File-Transmitter.Server.test.iml" filepath="$PROJECT_DIR$/.idea/modules/Server/File-Transmitter.Server.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/File-Transmitter.main.iml" filepath="$PROJECT_DIR$/.idea/modules/File-Transmitter.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/File-Transmitter.test.iml" filepath="$PROJECT_DIR$/.idea/modules/File-Transmitter.test.iml" />
+    </modules>
+  </component>
+</project>
