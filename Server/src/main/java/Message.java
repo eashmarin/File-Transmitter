@@ -1,9 +1,6 @@
-import java.io.File;
-import java.io.IOException;
 import java.io.Serial;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 
 public class Message implements Serializable {
     @Serial

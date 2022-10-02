@@ -6,8 +6,8 @@ public class Main {
         InetSocketAddress serverAddress = new InetSocketAddress(args[1], Integer.parseInt(args[2]));
 
         Client client = new Client(filePath, serverAddress);
-        client.sendFile();
-        client.receiveStatus();
+        client.startSession();
+        client.cleanup();
         System.out.println("Hello from client");
     }
 }

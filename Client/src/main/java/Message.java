@@ -1,34 +1,25 @@
 import java.io.File;
 import java.io.IOException;
+import java.io.Serial;
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
-public class Message {
-    private final String filePath;
-    private final int size;
-    private final File file;
+public class Message implements Serializable {
+    @Serial
+    private static final long serialVersionUID=2L;
 
-    public Message(String filePath, int size) {
-        this.filePath = filePath;
-        this.size = size;
-        this.file = new File(filePath);
+    private final byte[] content;
+
+    public Message(byte[] content) {
+        this.content = content;
     }
 
-    public String getFilePath() {
-        return filePath;
+    public Message(String content) {
+        this.content = content.getBytes(StandardCharsets.UTF_8);
     }
 
-    public int getSize() {
-        return size;
-    }
-
-    public String getText() {
-        String content = "";
-        try {
-            content = Files.readString(file.toPath(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return file.getName() + "\n" + size + "\n" + content;
+    public byte[] getContent() {
+        return content;
     }
 }

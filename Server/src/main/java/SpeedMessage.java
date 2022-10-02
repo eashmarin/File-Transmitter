@@ -1,8 +1,5 @@
 import java.io.Serial;
 import java.io.Serializable;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 public class SpeedMessage implements Serializable {
     @Serial
@@ -11,11 +8,9 @@ public class SpeedMessage implements Serializable {
     private final String speedType;
     private final double speedValue;
 
-    public SpeedMessage(byte[] content) {
-        byte[] speedTypeInBytes = Arrays.copyOfRange(content, 0, 10);
-        speedType = new String(speedTypeInBytes, StandardCharsets.UTF_8);
-        byte[] speedValueInBytes = Arrays.copyOfRange(content, 10, content.length);
-        speedValue = Double.parseDouble(new String(speedValueInBytes, StandardCharsets.UTF_8));
+    public SpeedMessage(String speedType, double speedValue) {
+        this.speedType = speedType;
+        this.speedValue = speedValue;
     }
 
     public String getSpeedType() {

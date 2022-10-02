@@ -1,12 +1,13 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Scanner;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class Server {
+    private final static int MAX_NAME_LENGTH = 4096;
+    private final static int MAX_SIZE_LENGTH = 13;
+
     private ServerSocket serverSocket;
     private Socket clientSocket;
 
@@ -31,17 +32,21 @@ public class Server {
 
     private void downloadFile() {
         try {
-            Scanner scanner = new Scanner(clientSocket.getInputStream());
+            ObjectInputStream inputStream = new ObjectInputStream(clientSocket.getInputStream());
 
-            String fileName = scanner.nextLine();
-            int fileSize = Integer.parseInt(scanner.nextLine());
+            try {
+                HeadMessage message = (HeadMessage) inputStream.readObject();
+                File fileToSave = createFile(message.getFileName());
 
-            File fileToSave = createFile(fileName);
-            fillFile(clientSocket.getInputStream(), fileToSave, fileSize);
+                downloadFileContent(clientSocket, fileToSave);
 
-            sendDownloadStatus(fileSize == fileToSave.length());
+                sendDownloadStatus(clientSocket.getOutputStream(), message.getSize() == fileToSave.length());
 
-            //scanner.close();
+                System.out.println("fileName = " + message.getFileName() + "; fileSize=" + message.getSize() + ";");
+
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -53,45 +58,71 @@ public class Server {
             uploadsDirectory.mkdir();
         }
 
-        File newFile = new File(uploadsDirectory.getName() + "/" + fileName);
+        String filePath = uploadsDirectory.getName() + "/" +  getUnusedFileName(uploadsDirectory, fileName);
+
+        File newFile = new File(filePath);
+
+        try {
+            newFile.createNewFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         return newFile;
     }
 
-    private void fillFile(InputStream inputStream, File file, int fileSize) {
-        String content = getFileContent(inputStream, file, fileSize);
-        writeContentInFile(content, file);
-    }
+    private String getUnusedFileName(File fileDirectory, String fileName) {
+        String nameWithoutExtension = fileName.split("[.]")[0];
+        String extension = fileName.split("[.]")[1];
+        String newName = fileName;
+        int counter = 0;
 
-    private String getFileContent(InputStream inputStream, File file, int fileSize) {
-        StringBuilder content = new StringBuilder();
-
-        Scanner scanner = new Scanner(inputStream);
-        while (scanner.hasNext()) {
-            content.append(scanner.nextLine());
+        while (Files.exists(Path.of(fileDirectory.getPath(), newName))) {
+            counter++;
+            newName = nameWithoutExtension + "(" + counter + ")" + "." + extension;
         }
-        //scanner.close();
 
-        return content.toString();
+        return newName;
     }
 
-    private void writeContentInFile(String content, File file) {
+    private void downloadFileContent(Socket clientSocket, File file) { //TODO: move part of function in sendSpeed(Socket)
         try {
-            FileWriter fileWriter = new FileWriter(file);
-            fileWriter.append(content);
-        } catch (IOException e) {
+            FileOutputStream fileOutputStream = new FileOutputStream(file);
+            ObjectInputStream inputStream = new ObjectInputStream(clientSocket.getInputStream());
+            ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+
+            long startTime = System.currentTimeMillis();
+            long iterationTime = System.currentTimeMillis();
+            int bytesReadInMoment;
+            int bytesReadTotally = 0;
+            Message message;
+
+            while ((message = (Message) inputStream.readObject()).getContent().length > 0) {
+                bytesReadInMoment = message.getContent().length;
+                bytesReadTotally += bytesReadInMoment;
+
+                fileOutputStream.write(message.getContent());
+
+                if (System.currentTimeMillis() - iterationTime >= 3000) {
+                    outputStream.writeObject(new SpeedMessage("instant", (double) bytesReadInMoment / 3000.0));
+                    iterationTime = System.currentTimeMillis();
+                }
+            }
+            System.out.println("bytesReadTotally = " + bytesReadTotally);
+            double sessionSpeed = (double) bytesReadTotally / (System.currentTimeMillis() - startTime);
+            outputStream.writeObject(new SpeedMessage("session", sessionSpeed));
+            fileOutputStream.flush();
+            //out.close();
+        } catch(IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
 
-    private void sendDownloadStatus(boolean isFileComplete) {
+    private void sendDownloadStatus(OutputStream outputStream, boolean isFileComplete) {
         String statusMessage = isFileComplete ? "OK" : "FAULT";
         try {
-            PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());
-            writer.flush();
-            writer.write(statusMessage);
-            writer.flush();
-            //writer.close();
+            outputStream.write(statusMessage.getBytes());
+            outputStream.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
