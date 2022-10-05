@@ -10,6 +10,5 @@ public class Main {
             e.printStackTrace();
         }
         server.listenClients();
-        System.out.println("Hello from server");
     }
 }

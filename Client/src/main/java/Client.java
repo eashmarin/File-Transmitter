@@ -1,21 +1,27 @@
+import org.apache.logging.log4j.LogManager;
+
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class Client {
-    private final static int MAX_NAME_LENGTH = 4096;
-    private final static int MAX_SIZE_LENGTH = 13;
-
     private final File fileToTransfer;
-    private Socket clientSocket;
 
-    public Client(String filePath, InetSocketAddress serverSocketAddress) {
+    private Socket socket;
+    private ObjectInputStream inputStream;
+    private ObjectOutputStream outputStream;
+
+    public Client(String filePath, InetSocketAddress serverSocketAddress) throws FileNotFoundException {
         this.fileToTransfer = new File(filePath);
+        if (!fileToTransfer.exists()) {
+            throw new FileNotFoundException();
+        }
         try {
-            this.clientSocket = new Socket(serverSocketAddress.getAddress(), serverSocketAddress.getPort());
+            this.socket = new Socket(serverSocketAddress.getAddress(), serverSocketAddress.getPort());
+            this.inputStream = new ObjectInputStream(socket.getInputStream());
+            this.outputStream = new ObjectOutputStream(socket.getOutputStream());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -36,9 +42,8 @@ public class Client {
     private void sendMetaData() {
         HeadMessage headMessage = new HeadMessage(fileToTransfer.getPath(), (int) fileToTransfer.length());
         try {
-            ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
-            out.writeObject(headMessage);
-            out.flush();
+            outputStream.writeObject(headMessage);
+            outputStream.flush();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -46,13 +51,11 @@ public class Client {
 
     private void sendContent() {
         try {
-            ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
             DataInputStream fileStream = new DataInputStream(new FileInputStream(fileToTransfer));
             byte[] buf = new byte[4096];
             int count;
 
             while ((count = fileStream.read(buf)) > 0) {
-                System.out.println("write " + count + " bytes");
                 outputStream.writeObject(new Message(Arrays.copyOfRange(buf, 0, count)));
             }
             outputStream.writeObject(new Message(new byte[0]));
@@ -65,7 +68,7 @@ public class Client {
 
     public void cleanup() {
         try {
-            clientSocket.close();
+            socket.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -74,13 +77,12 @@ public class Client {
     private void receiveSpeed() {
         try {
             SpeedMessage speedMessage;
-            ObjectInputStream inputStream = new ObjectInputStream(clientSocket.getInputStream());
 
             while((speedMessage = (SpeedMessage) inputStream.readObject()).getSpeedType().equals("instant")) {
-                System.out.println("instant speed = " + speedMessage.getSpeedValue() + " bytes / millisecond");
+                LogManager.getRootLogger().info("instant speed = " + (int) speedMessage.getSpeedValue() + " bytes / second");
             }
 
-            System.out.println("session (average) speed = " + speedMessage.getSpeedValue() + " bytes / millisecond");
+            LogManager.getRootLogger().info("Session speed = " + speedMessage.getSpeedValue() + " bytes / second");
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (ClassNotFoundException e) {
@@ -90,11 +92,9 @@ public class Client {
     }
     public void receiveStatus() {
         try {
-            InputStream inputStream = clientSocket.getInputStream();
             byte[] status = new byte[8];
             inputStream.read(status);
             System.out.println(new String(status, StandardCharsets.UTF_8));
-            //reader.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

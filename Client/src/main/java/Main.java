@@ -1,3 +1,6 @@
+import org.apache.logging.log4j.LogManager;
+
+import java.io.FileNotFoundException;
 import java.net.InetSocketAddress;
 
 public class Main {
@@ -5,9 +8,13 @@ public class Main {
         String filePath = args[0];
         InetSocketAddress serverAddress = new InetSocketAddress(args[1], Integer.parseInt(args[2]));
 
-        Client client = new Client(filePath, serverAddress);
-        client.startSession();
-        client.cleanup();
-        System.out.println("Hello from client");
+        try {
+            Client client = new Client(filePath, serverAddress);
+            client.startSession();
+            client.cleanup();
+        } catch (FileNotFoundException e) {
+            System.out.println();
+            LogManager.getRootLogger().error("Wrong path to file: '" + filePath + "'");
+        }
     }
 }

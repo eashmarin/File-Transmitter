@@ -6,21 +6,20 @@ public class HeadMessage implements Serializable {
     @Serial
     private static final long serialVersionUID=1L;
 
-    private final int size;
+    private final int fileSize;
     private final String fileName;
 
     public HeadMessage(String filePath, int size) {
         File file = new File(filePath);
         this.fileName = file.getName();
-        this.size = size;
+        this.fileSize = size;
     }
 
-    public int getSize() {
-        return size;
+    public int getFileSize() {
+        return fileSize;
     }
 
     public String getFileName() {
         return fileName;
     }
-
 }
