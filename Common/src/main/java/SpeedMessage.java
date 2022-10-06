@@ -1,3 +1,5 @@
+package main.java;
+
 import java.io.Serial;
 import java.io.Serializable;
 

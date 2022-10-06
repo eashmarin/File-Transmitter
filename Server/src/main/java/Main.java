@@ -1,3 +1,7 @@
+package main.java;
+
+import org.apache.logging.log4j.LogManager;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -9,6 +13,14 @@ public class Main {
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
+        System.out.println("we");
+
+        LogManager.getLogger().info("info");
+        LogManager.getLogger().debug("debbbug");
+        LogManager.getLogger().warn("warn");
+        LogManager.getLogger().error("errrrrrror");
+        LogManager.getRootLogger().info("Welcome");
+        //LogManager.getRootLogger().debug("welcome");
         server.listenClients();
     }
 }
