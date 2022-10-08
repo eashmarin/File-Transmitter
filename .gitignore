@@ -1,12 +1,15 @@
 /.idea
-/Client/target/classes
-/Client/target/generated-sources
-/Client/target/maven-archiver
-/Client/target/maven-status
+/Client/target
+/Client/build
 
-/Server/target/classes
-/Server/target/generated-sources
-/Server/target/maven-archiver
-/Server/target/maven-status
+/Server/target
+/Server/build
+
+/Common/target
+/Common/build
 movie.mp4
 /uploads/
+.DS_Store
+.gradle
+*.txt
+*.class

@@ -1,5 +1,7 @@
 package main.java;
 
+import org.apache.logging.log4j.LogManager;
+
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -7,7 +9,7 @@ import java.nio.file.Path;
 
 public class FileDownloader {
     private int bytesReadTotal = 0;
-    private int bytesReadInSecond = 0;
+    private int bytesReadInPeriod = 0;
 
     private HeadMessage headMessage;
 
@@ -27,42 +29,38 @@ public class FileDownloader {
     public void download() {
         long startTime = System.currentTimeMillis();
 
-        downloadMetaData();
-        fileToSave = createFile(headMessage.getFileName());
-        downloadContent();
+        try {
+            downloadMetaData();
+            fileToSave = createFile(headMessage.getFileName());
+            downloadContent();
+        } catch (IOException | ClassNotFoundException e) {
+            LogManager.getLogger().error(e.getMessage());
+        }
 
         timeTaken = System.currentTimeMillis() - startTime;
-        System.out.println("time taken = " + timeTaken);
+        LogManager.getLogger().info("time taken = " + timeTaken);
     }
 
-    private void downloadMetaData() {
-        try {
-            headMessage = (HeadMessage) inputStream.readObject();
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
+    private void downloadMetaData() throws IOException, ClassNotFoundException {
+        headMessage = (HeadMessage) inputStream.readObject();
     }
 
-    private File createFile(String fileName) {
+    private File createFile(String fileName) throws IOException {
         File uploadsDirectory = new File("uploads");
         if (!uploadsDirectory.exists()) {
             uploadsDirectory.mkdir();
         }
 
-        String filePath = uploadsDirectory.getName() + "/" +  getUnusedFileName(uploadsDirectory, fileName);
+        String filePath = uploadsDirectory.getName() + "/" +  generateUnusedFileName(uploadsDirectory, fileName);
 
         File newFile = new File(filePath);
 
-        try {
-            newFile.createNewFile();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        newFile.createNewFile();
 
         return newFile;
     }
 
-    private String getUnusedFileName(File fileDirectory, String fileName) {
+    private String generateUnusedFileName(File fileDirectory, String fileName) {
         String nameWithoutExtension = fileName.split("[.]")[0];
         String extension = fileName.split("[.]")[1];
         String newName = fileName;
@@ -76,23 +74,18 @@ public class FileDownloader {
         return newName;
     }
 
-    private void downloadContent() {
-        try {
-            FileOutputStream fileOutputStream = new FileOutputStream(fileToSave);
-            Message message;
+    private void downloadContent() throws IOException, ClassNotFoundException {
+        FileOutputStream fileOutputStream = new FileOutputStream(fileToSave);
+        ContentMessage message;
 
-            while ((message = (Message) inputStream.readObject()).getContent().length > 0) {
-                bytesReadInSecond += message.getContent().length;
-                bytesReadTotal += message.getContent().length;
+        while ((message = (ContentMessage) inputStream.readObject()).getContent().length > 0) {
+            bytesReadInPeriod += message.getContent().length;
+            bytesReadTotal += message.getContent().length;
 
-                fileOutputStream.write(message.getContent());
-            }
-            System.out.println("bytesReadTotal = " + bytesReadTotal);
-            fileOutputStream.flush();
-            //out.close();
-        } catch(IOException | ClassNotFoundException e) {
-            e.printStackTrace();
+            fileOutputStream.write(message.getContent());
         }
+        fileOutputStream.flush();
+        fileOutputStream.close();
     }
 
     public boolean isComplete() {
@@ -100,11 +93,11 @@ public class FileDownloader {
     }
 
     public void resetInstantSpeed() {
-        bytesReadInSecond = 0;
+        bytesReadInPeriod = 0;
     }
 
     public int getInstantSpeed() {
-        return bytesReadInSecond;
+        return bytesReadInPeriod;
     }
 
     public double getSessionSpeed() {
