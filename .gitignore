@@ -13,3 +13,6 @@ movie.mp4
 .gradle
 *.txt
 *.class
+gradle/wrapper/gradle-wrapper.properties
+build/tmp/jar/MANIFEST.MF
+target/File-Transmitter-1.0.jar

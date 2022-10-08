@@ -16,7 +16,7 @@ public class FileDownloader {
     private File fileToSave;
 
     private ObjectInputStream inputStream;
-    private long timeTaken = 0;
+    private long startTime = 0;
 
     public FileDownloader(Socket socket) {
         try {
@@ -27,7 +27,7 @@ public class FileDownloader {
     }
 
     public void download() {
-        long startTime = System.currentTimeMillis();
+        startTime = System.currentTimeMillis();
 
         try {
             downloadMetaData();
@@ -37,8 +37,7 @@ public class FileDownloader {
             LogManager.getLogger().error(e.getMessage());
         }
 
-        timeTaken = System.currentTimeMillis() - startTime;
-        LogManager.getLogger().info("time taken = " + timeTaken);
+        LogManager.getLogger().info(String.format("time taken = %f sec", (System.currentTimeMillis() - startTime) / 1000.0));
     }
 
     private void downloadMetaData() throws IOException, ClassNotFoundException {
@@ -88,10 +87,6 @@ public class FileDownloader {
         fileOutputStream.close();
     }
 
-    public boolean isComplete() {
-        return timeTaken > 0;
-    }
-
     public void resetInstantSpeed() {
         bytesReadInPeriod = 0;
     }
@@ -101,7 +96,7 @@ public class FileDownloader {
     }
 
     public double getSessionSpeed() {
-        return (bytesReadTotal / (double) timeTaken) * 1000;
+        return (bytesReadTotal / ((double) System.currentTimeMillis() - startTime)) * 1000;
     }
 
     public boolean isDownloadCompletedProperly() {

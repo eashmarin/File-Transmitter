@@ -52,13 +52,13 @@ public class Server {
             FileDownloader fileDownloader = new FileDownloader(clientSocket);
 
             ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(1);
-            scheduledThreadPool.scheduleAtFixedRate(() -> measureSpeed(fileDownloader, outputStream), 3, 3, TimeUnit.SECONDS);
+            scheduledThreadPool.scheduleAtFixedRate(() -> sendSpeed(fileDownloader, outputStream), 3, 3, TimeUnit.SECONDS);
 
             fileDownloader.download();
 
             scheduledThreadPool.shutdown();
 
-            measureSpeed(fileDownloader, outputStream);
+            sendSpeed(fileDownloader, outputStream);
 
             sendDownloadStatus(outputStream, fileDownloader.isDownloadCompletedProperly());
         } catch (IOException e) {
@@ -66,14 +66,10 @@ public class Server {
         }
     }
 
-    private void measureSpeed(FileDownloader downloader, ObjectOutputStream outputStream) {
+    private void sendSpeed(FileDownloader downloader, ObjectOutputStream outputStream) {
         try {
-            outputStream.writeObject(new SpeedMessage("instant", downloader.getInstantSpeed()));
+            outputStream.writeObject(new SpeedMessage(downloader.getInstantSpeed(), downloader.getSessionSpeed()));
             downloader.resetInstantSpeed();
-
-            if (downloader.isComplete()) {
-                outputStream.writeObject(new SpeedMessage("session", downloader.getSessionSpeed()));
-            }
         } catch (IOException e) {
             LogManager.getLogger().error(e.getMessage());
         }

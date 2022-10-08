@@ -7,6 +7,9 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class Client {
     private final File fileToTransfer;
@@ -27,15 +30,15 @@ public class Client {
     }
 
     public void startSession() {
-        Thread thread = new Thread(this::sendFile);
-        thread.start();
+        ScheduledExecutorService speedReceiverThread = Executors.newScheduledThreadPool(1);
+        speedReceiverThread.scheduleAtFixedRate(this::receiveSpeed, 3, 3, TimeUnit.SECONDS);
 
-        try {
-            receiveSpeed();
-            receiveStatus();
-        } catch(IOException | ClassNotFoundException e) {
-            LogManager.getLogger().error(e.getMessage());
-        }
+        sendFile();
+
+        speedReceiverThread.shutdown();
+        receiveSpeed();
+
+        receiveStatus();
     }
 
     private void sendFile() {
@@ -75,19 +78,24 @@ public class Client {
         }
     }
 
-    private void receiveSpeed() throws IOException, ClassNotFoundException {
+    private void receiveSpeed() {
         SpeedMessage speedMessage;
-
-        while((speedMessage = (SpeedMessage) inputStream.readObject()).getSpeedType().equals("instant")) {
-            LogManager.getLogger().info("Instant speed = " + (int) speedMessage.getSpeedValue() + " bytes / second");
+        try {
+            speedMessage = (SpeedMessage) inputStream.readObject();
+            LogManager.getLogger().info("Instant speed = " + (int) speedMessage.getInstantSpeed() + " bytes / second");
+            LogManager.getLogger().info("Session speed = " + (int) speedMessage.getSessionSpeed() + " bytes / second");
+        } catch (IOException | ClassNotFoundException e) {
+            LogManager.getLogger().error(e.getLocalizedMessage());
         }
-
-        LogManager.getLogger().info("Session speed = " + speedMessage.getSpeedValue() + " bytes / second");
     }
 
-    public void receiveStatus() throws IOException {
+    public void receiveStatus() {
         byte[] status = new byte[9];
-        inputStream.read(status);
+        try {
+            inputStream.read(status);
+        } catch (IOException e) {
+            LogManager.getLogger().error(e.getLocalizedMessage());
+        }
         LogManager.getLogger().info("Status = " + new String(status, StandardCharsets.UTF_8));
     }
 }
