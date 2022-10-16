@@ -90,12 +90,13 @@ public class Client {
     }
 
     public void receiveStatus() {
-        byte[] status = new byte[9];
         try {
-            inputStream.read(status);
-        } catch (IOException e) {
+            StatusMessage statusMessage = (StatusMessage) inputStream.readObject();
+
+            LogManager.getLogger().info("Status = " + statusMessage.getStatus());
+        } catch (IOException | ClassNotFoundException e) {
             LogManager.getLogger().error(e.getLocalizedMessage());
         }
-        LogManager.getLogger().info("Status = " + new String(status, StandardCharsets.UTF_8));
+
     }
 }

@@ -78,8 +78,8 @@ public class Server {
     }
 
     private void sendDownloadStatus(ObjectOutputStream outputStream, boolean isFileDownloadedProperly) throws IOException {
-        String statusMessage = isFileDownloadedProperly ? "SUCCEEDED" : "FAILED";
-        outputStream.write(statusMessage.getBytes());
+        String status = isFileDownloadedProperly ? "SUCCEEDED" : "FAILED";
+        outputStream.writeObject(new StatusMessage(status));
         outputStream.flush();
     }
 }
