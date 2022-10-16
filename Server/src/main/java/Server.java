@@ -3,10 +3,7 @@ package main.java;
 import org.apache.logging.log4j.LogManager;
 
 import java.io.*;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -51,14 +48,16 @@ public class Server {
             ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
             FileDownloader fileDownloader = new FileDownloader(clientSocket);
 
+            InetSocketAddress clientAddress = (InetSocketAddress) clientSocket.getRemoteSocketAddress();
+
             ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(1);
-            scheduledThreadPool.scheduleAtFixedRate(() -> sendSpeed(fileDownloader, outputStream), 3, 3, TimeUnit.SECONDS);
+            scheduledThreadPool.scheduleAtFixedRate(() -> sendSpeed(clientAddress, fileDownloader, outputStream), 3, 3, TimeUnit.SECONDS);
 
             fileDownloader.download();
 
             scheduledThreadPool.shutdown();
 
-            sendSpeed(fileDownloader, outputStream);
+            sendSpeed(clientAddress, fileDownloader, outputStream);
 
             sendDownloadStatus(outputStream, fileDownloader.isDownloadCompletedProperly());
         } catch (IOException e) {
@@ -66,9 +65,12 @@ public class Server {
         }
     }
 
-    private void sendSpeed(FileDownloader downloader, ObjectOutputStream outputStream) {
+    private void sendSpeed(InetSocketAddress clientAddress, FileDownloader downloader, ObjectOutputStream outputStream) {
+        LogManager.getLogger().info(String.format("Client %s: instant = %d bytes/sec, session = %f bytes/sec", clientAddress, downloader.getInstantSpeed(), downloader.getSessionSpeed()));
+
         try {
-            outputStream.writeObject(new SpeedMessage(downloader.getInstantSpeed(), downloader.getSessionSpeed()));
+            SpeedMessage speedMessage = new SpeedMessage(downloader.getInstantSpeed(), downloader.getSessionSpeed());
+            outputStream.writeObject(speedMessage);
             downloader.resetInstantSpeed();
         } catch (IOException e) {
             LogManager.getLogger().error(e.getMessage());
