@@ -1,0 +1,25 @@
+plugins {
+    id 'java'
+}
+
+group 'org.example'
+version '1.0'
+
+repositories {
+    mavenCentral()
+}
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+    }
+}
+
+jar {
+    destinationDir = file("$rootDir/../target")
+    manifest {
+        attributes 'Main-Class': 'HeadMessage'
+        attributes 'Class-Path': configurations.runtimeClasspath.files.collect { it.getName() }.join(' ')
+    }
+}

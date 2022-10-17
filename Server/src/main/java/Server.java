@@ -1,99 +1,85 @@
+package main.java;
+
+import org.apache.logging.log4j.LogManager;
+
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Scanner;
+import java.net.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class Server {
     private ServerSocket serverSocket;
-    private Socket clientSocket;
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     public Server(int port) {
         try {
             serverSocket = new ServerSocket(port);
         } catch (IOException e) {
-            e.printStackTrace();
+            LogManager.getLogger().error("Can't create server socket");
         }
+    }
+
+    public String getServerAddress() {
+        String address = "";
+        try {
+            address = InetAddress.getLocalHost().getHostAddress() + ":" + serverSocket.getLocalPort();
+        } catch (UnknownHostException e) {
+            LogManager.getLogger().error(e.getMessage());
+        }
+        return address;
     }
 
     public void listenClients() {
         try {
-            //while (!serverSocket.isClosed()) {
-            clientSocket = serverSocket.accept();
-            downloadFile();
-            //}
+            while (!serverSocket.isClosed()) {
+                Socket clientSocket = serverSocket.accept();
+                executorService.execute(() -> downloadFile(clientSocket));
+                LogManager.getLogger().info("New client has connected - " + clientSocket.getRemoteSocketAddress());
+            }
         } catch (IOException e) {
-            e.printStackTrace();
+            LogManager.getLogger().error(e.getMessage());
         }
     }
 
-    private void downloadFile() {
+    private void downloadFile(Socket clientSocket) {
         try {
-            Scanner scanner = new Scanner(clientSocket.getInputStream());
+            ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+            FileDownloader fileDownloader = new FileDownloader(clientSocket);
 
-            String fileName = scanner.nextLine();
-            int fileSize = Integer.parseInt(scanner.nextLine());
+            InetSocketAddress clientAddress = (InetSocketAddress) clientSocket.getRemoteSocketAddress();
 
-            File fileToSave = createFile(fileName);
-            fillFile(clientSocket.getInputStream(), fileToSave, fileSize);
+            ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(1);
+            scheduledThreadPool.scheduleAtFixedRate(() -> sendSpeed(clientAddress, fileDownloader, outputStream), 3, 3, TimeUnit.SECONDS);
 
-            sendDownloadStatus(fileSize == fileToSave.length());
+            fileDownloader.download();
 
-            //scanner.close();
+            scheduledThreadPool.shutdown();
+
+            sendSpeed(clientAddress, fileDownloader, outputStream);
+
+            sendDownloadStatus(outputStream, fileDownloader.isDownloadCompletedProperly());
         } catch (IOException e) {
-            e.printStackTrace();
+            LogManager.getLogger().error(e.getMessage());
         }
     }
 
-    private File createFile(String fileName) {
-        File uploadsDirectory = new File("uploads");
-        if (!uploadsDirectory.exists()) {
-            uploadsDirectory.mkdir();
-        }
+    private void sendSpeed(InetSocketAddress clientAddress, FileDownloader downloader, ObjectOutputStream outputStream) {
+        LogManager.getLogger().info(String.format("Client %s: instant = %d bytes/sec, session = %f bytes/sec", clientAddress, downloader.getInstantSpeed(), downloader.getSessionSpeed()));
 
-        File newFile = new File(uploadsDirectory.getName() + "/" + fileName);
-
-        return newFile;
-    }
-
-    private void fillFile(InputStream inputStream, File file, int fileSize) {
-        String content = getFileContent(inputStream, file, fileSize);
-        writeContentInFile(content, file);
-    }
-
-    private String getFileContent(InputStream inputStream, File file, int fileSize) {
-        StringBuilder content = new StringBuilder();
-
-        Scanner scanner = new Scanner(inputStream);
-        while (scanner.hasNext()) {
-            content.append(scanner.nextLine());
-        }
-        //scanner.close();
-
-        return content.toString();
-    }
-
-    private void writeContentInFile(String content, File file) {
         try {
-            FileWriter fileWriter = new FileWriter(file);
-            fileWriter.append(content);
+            SpeedMessage speedMessage = new SpeedMessage(downloader.getInstantSpeed(), downloader.getSessionSpeed());
+            outputStream.writeObject(speedMessage);
+            downloader.resetInstantSpeed();
         } catch (IOException e) {
-            e.printStackTrace();
+            LogManager.getLogger().error(e.getMessage());
         }
     }
 
-    private void sendDownloadStatus(boolean isFileComplete) {
-        String statusMessage = isFileComplete ? "OK" : "FAULT";
-        try {
-            PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());
-            writer.flush();
-            writer.write(statusMessage);
-            writer.flush();
-            //writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    private void sendDownloadStatus(ObjectOutputStream outputStream, boolean isFileDownloadedProperly) throws IOException {
+        String status = isFileDownloadedProperly ? "SUCCEEDED" : "FAILED";
+        outputStream.writeObject(new StatusMessage(status));
+        outputStream.flush();
     }
 }
